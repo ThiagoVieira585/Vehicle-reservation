@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -21,14 +22,12 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // Create a new user
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@RequestBody @Valid CreateUserDTO createUserDTO) {
         User user = userService.createUser(createUserDTO);
         return ResponseEntity.ok(new UserResponse(user.getName(), user.getEmail()));
     }
 
-    // Update an existing user
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,
                                                    @RequestBody @Valid UpdateUserDTO updateUserDTO) {
@@ -36,14 +35,12 @@ public class UserController {
         return ResponseEntity.ok(new UserResponse(user.getName(), user.getEmail()));
     }
 
-    // Get user by ID
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
         return ResponseEntity.ok(new UserResponse(user.getName(), user.getEmail()));
     }
 
-    // Get all users
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<User> users = userService.getAllUsers();
@@ -53,18 +50,12 @@ public class UserController {
         return ResponseEntity.ok(responses);
     }
 
-    // Login endpoint
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody @Valid LoginUserDTO loginUserDTO) {
-        boolean success = userService.authenticate(loginUserDTO.getEmail(), loginUserDTO.getPassword());
-        if (success) {
-            return ResponseEntity.ok("Login successful");
-        } else {
-            return ResponseEntity.status(401).body("Invalid email or password");
-        }
+    public ResponseEntity<Map<String, String>> login(@RequestBody @Valid LoginUserDTO loginUserDTO) {
+        String token = userService.login(loginUserDTO);
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
-    // Delete a user
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);

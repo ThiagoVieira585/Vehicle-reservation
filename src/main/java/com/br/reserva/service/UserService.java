@@ -1,10 +1,11 @@
 package com.br.reserva.service;
 
 import com.br.reserva.dto.user.CreateUserDTO;
+import com.br.reserva.dto.user.LoginUserDTO;
 import com.br.reserva.dto.user.UpdateUserDTO;
-import com.br.reserva.model.Role;
 import com.br.reserva.model.User;
 import com.br.reserva.repository.UserRepository;
+import com.br.reserva.util.Jwt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,9 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private Jwt jwt;
+
     public User createUser(CreateUserDTO createUserDTO) {
         User user = new User();
         user.setName(createUserDTO.getName());
@@ -35,42 +39,36 @@ public class UserService {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setName(updateUserDTO.getName());
         user.setEmail(updateUserDTO.getEmail());
-
         if (updateUserDTO.getPassword() != null && !updateUserDTO.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(updateUserDTO.getPassword()));
         }
-
         return userRepository.save(user);
     }
 
-    // Get a user by ID
     public User getUserById(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    // Get all users
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // Authenticate a user
-    public boolean authenticate(String email, String password) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            return passwordEncoder.matches(password, user.getPassword());
-        }
-
-        return false;
-    }
-
-    // Delete a user by ID
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new RuntimeException("User not found");
         }
-
         userRepository.deleteById(id);
     }
+
+    public String login(LoginUserDTO loginUserDTO) {
+        Optional<User> userOpt = userRepository.findByEmail(loginUserDTO.getEmail());
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (passwordEncoder.matches(loginUserDTO.getPassword(), user.getPassword())) {
+                return jwt.generateToken(user.getEmail());
+            }
+        }
+        throw new RuntimeException("Invalid email or password");
+    }
+
 }
